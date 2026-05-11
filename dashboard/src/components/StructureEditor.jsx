@@ -7,8 +7,8 @@ const S = {
   label: { color: '#7ba49e', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '5px' },
   input: { width: '100%', background: '#f4f9f7', border: '1px solid #d4e6e1', borderRadius: '8px', padding: '8px 11px', color: '#1a2e2a', fontSize: '13px', fontFamily: 'inherit' },
   monoInput: { width: '100%', background: '#f4f9f7', border: '1px solid #d4e6e1', borderRadius: '8px', padding: '8px 11px', color: '#1a2e2a', fontSize: '12px', fontFamily: 'ui-monospace, monospace' },
-  addBtn: { padding: '7px 14px', background: '#7ba49e', color: '#0b1f1d', border: 'none', borderRadius: '7px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.07em', cursor: 'pointer' },
-  cancelBtn: { padding: '7px 12px', background: 'transparent', border: '1px solid #d4e6e1', borderRadius: '7px', color: '#7a9a96', fontSize: '11px', fontWeight: 600, cursor: 'pointer' },
+  addBtn: { padding: '7px 14px', background: '#7ba49e', color: '#0b1f1d', border: 'none', borderRadius: '7px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.07em', cursor: 'pointer', transition: 'all 0.15s' },
+  cancelBtn: { padding: '7px 12px', background: 'transparent', border: '1px solid #d4e6e1', borderRadius: '7px', color: '#7a9a96', fontSize: '11px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' },
   deleteBtn: { padding: '3px 8px', background: 'transparent', border: '1px solid rgba(220,38,38,0.2)', borderRadius: '5px', color: 'rgba(220,38,38,0.5)', fontSize: '10px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' },
 };
 
@@ -98,8 +98,14 @@ function AddFieldForm({ projectSlug, sectionId, onAdded, onCancel }) {
       </div>
       {err && <p style={{ color: '#dc2626', fontSize: '12px', margin: 0 }}>{err}</p>}
       <div style={{ display: 'flex', gap: '8px' }}>
-        <button type="submit" disabled={saving} style={S.addBtn}>{saving ? 'Adding…' : 'Add Field'}</button>
-        <button type="button" onClick={onCancel} style={S.cancelBtn}>Cancel</button>
+        <button type="submit" disabled={saving} style={S.addBtn}
+          onMouseEnter={e => { if (!saving) e.currentTarget.style.background = '#5e8a86'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#7ba49e'; }}
+        >{saving ? 'Adding…' : 'Add Field'}</button>
+        <button type="button" onClick={onCancel} style={S.cancelBtn}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(123,164,158,0.12)'; e.currentTarget.style.borderColor = '#7ba49e'; e.currentTarget.style.color = '#7ba49e'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#d4e6e1'; e.currentTarget.style.color = '#7a9a96'; }}
+        >Cancel</button>
       </div>
     </form>
   );
@@ -148,7 +154,10 @@ function SectionBlock({ projectSlug, section, fields, onFieldAdded, onFieldDelet
           ? <AddFieldForm projectSlug={projectSlug} sectionId={section.id}
               onAdded={f => { onFieldAdded(f); setShowAddField(false); }}
               onCancel={() => setShowAddField(false)} />
-          : <button onClick={() => setShowAddField(true)} style={{ ...S.cancelBtn, fontSize: '10.5px', marginTop: '2px' }}>+ Add Field</button>
+          : <button onClick={() => setShowAddField(true)} style={{ ...S.cancelBtn, fontSize: '10.5px', marginTop: '2px' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(123,164,158,0.12)'; e.currentTarget.style.borderColor = '#7ba49e'; e.currentTarget.style.color = '#7ba49e'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#d4e6e1'; e.currentTarget.style.color = '#7a9a96'; }}
+            >+ Add Field</button>
         }
       </div>
     </div>
@@ -198,8 +207,14 @@ function AddSectionForm({ projectSlug, pageId, onAdded, onCancel }) {
       </div>
       {err && <p style={{ color: '#dc2626', fontSize: '12px', margin: 0 }}>{err}</p>}
       <div style={{ display: 'flex', gap: '8px' }}>
-        <button type="submit" disabled={saving} style={S.addBtn}>{saving ? 'Adding…' : 'Add Section'}</button>
-        <button type="button" onClick={onCancel} style={S.cancelBtn}>Cancel</button>
+        <button type="submit" disabled={saving} style={S.addBtn}
+          onMouseEnter={e => { if (!saving) e.currentTarget.style.background = '#5e8a86'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#7ba49e'; }}
+        >{saving ? 'Adding…' : 'Add Section'}</button>
+        <button type="button" onClick={onCancel} style={S.cancelBtn}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(123,164,158,0.12)'; e.currentTarget.style.borderColor = '#7ba49e'; e.currentTarget.style.color = '#7ba49e'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#d4e6e1'; e.currentTarget.style.color = '#7a9a96'; }}
+        >Cancel</button>
       </div>
     </form>
   );
@@ -249,7 +264,10 @@ function PageBlock({ projectSlug, page, fields, onSectionAdded, onFieldAdded, on
           ? <AddSectionForm projectSlug={projectSlug} pageId={page.id}
               onAdded={s => { onSectionAdded(page.id, s); setShowAddSection(false); }}
               onCancel={() => setShowAddSection(false)} />
-          : <button onClick={() => setShowAddSection(true)} style={{ ...S.cancelBtn, marginTop: '4px' }}>+ Add Section</button>
+          : <button onClick={() => setShowAddSection(true)} style={{ ...S.cancelBtn, marginTop: '4px' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(123,164,158,0.12)'; e.currentTarget.style.borderColor = '#7ba49e'; e.currentTarget.style.color = '#7ba49e'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#d4e6e1'; e.currentTarget.style.color = '#7a9a96'; }}
+            >+ Add Section</button>
         }
       </div>
     </div>
@@ -295,8 +313,14 @@ function AddPageForm({ projectSlug, onAdded, onCancel }) {
       </div>
       {err && <p style={{ color: '#dc2626', fontSize: '12px', margin: 0 }}>{err}</p>}
       <div style={{ display: 'flex', gap: '8px' }}>
-        <button type="submit" disabled={saving} style={S.addBtn}>{saving ? 'Adding…' : 'Add Page'}</button>
-        <button type="button" onClick={onCancel} style={S.cancelBtn}>Cancel</button>
+        <button type="submit" disabled={saving} style={S.addBtn}
+          onMouseEnter={e => { if (!saving) e.currentTarget.style.background = '#5e8a86'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#7ba49e'; }}
+        >{saving ? 'Adding…' : 'Add Page'}</button>
+        <button type="button" onClick={onCancel} style={S.cancelBtn}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(123,164,158,0.12)'; e.currentTarget.style.borderColor = '#7ba49e'; e.currentTarget.style.color = '#7ba49e'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#d4e6e1'; e.currentTarget.style.color = '#7a9a96'; }}
+        >Cancel</button>
       </div>
     </form>
   );
