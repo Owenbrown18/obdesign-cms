@@ -10,7 +10,7 @@
   box-sizing: border-box;
 }
 
-body { margin: 0; }
+html, body { margin: 0; background: #f7faf9; }
 
 /* ── Slide-up confirmation animation ── */
 @keyframes slide-up-fade {

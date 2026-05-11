@@ -171,7 +171,7 @@ export default function Dashboard() {
       <aside style={{
         width: '220px', flexShrink: 0, background: C.sidebar,
         borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column',
-        position: 'sticky', top: 0, height: '100vh',
+        position: 'fixed', top: 0, left: 0, height: '100vh',
       }}>
 
         {/* Wordmark */}
@@ -311,7 +311,7 @@ export default function Dashboard() {
       </aside>
 
       {/* ── Main content ─────────────────────────────────── */}
-      <main style={{ flex: 1, overflowY: 'auto', background: 'linear-gradient(150deg, #f7faf9 0%, #eef4f2 100%)' }}>
+      <main style={{ flex: 1, marginLeft: '220px', background: 'linear-gradient(150deg, #f7faf9 0%, #eef4f2 100%)' }}>
         <div style={{ maxWidth: '680px', margin: '0 auto', padding: '52px 48px 80px' }}>
 
           {/* Developer panels */}
