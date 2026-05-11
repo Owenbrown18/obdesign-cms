@@ -10,7 +10,7 @@
   box-sizing: border-box;
 }
 
-html, body { margin: 0; background: #f7faf9; }
+html, body { margin: 0; background: linear-gradient(to right, #0d211e 220px, #f7faf9 220px); }
 
 /* ── Slide-up confirmation animation ── */
 @keyframes slide-up-fade {
