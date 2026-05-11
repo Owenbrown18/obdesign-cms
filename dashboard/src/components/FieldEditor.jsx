@@ -96,9 +96,9 @@ export default function FieldEditor({ projectSlug, field, onSaved }) {
             textTransform: 'uppercase', letterSpacing: '0.07em',
             cursor: isDirty && status !== STATUS.saving ? 'pointer' : 'default',
             transition: 'background 0.2s, color 0.2s, transform 0.15s',
-            boxShadow: isDirty && status !== STATUS.saving ? '0 2px 12px rgba(123,164,158,0.3)' : 'none',
+            boxShadow: isDirty && status !== STATUS.saving ? '0 0 8px rgba(123,164,158,0.4)' : 'none',
           }}
-          onMouseEnter={e => { if (isDirty && status !== STATUS.saving) e.currentTarget.style.transform = 'scale(1.04)'; }}
+          onMouseEnter={e => { if (isDirty && status !== STATUS.saving) e.currentTarget.style.transform = 'scale(1.05)'; }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
         >
           {status === STATUS.saving ? 'Saving…' : 'Save'}

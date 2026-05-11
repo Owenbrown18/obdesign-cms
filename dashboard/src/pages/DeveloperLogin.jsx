@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-export default function Login() {
+export default function DeveloperLogin() {
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [error, setError]       = useState(null);
@@ -36,14 +36,13 @@ export default function Login() {
         boxShadow: '0 32px 64px rgba(11,31,29,0.7), 0 0 0 1px rgba(123,164,158,0.06) inset',
       }}>
 
-        {/* Logo mark + product name */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{ marginTop: '8px' }}>
             <span style={{ color: '#fff', fontWeight: 700, fontSize: '26px', letterSpacing: '-0.02em' }}>OBDesign</span>
             <span style={{ color: '#7ba49e', fontWeight: 400, fontSize: '20px', marginLeft: '8px' }}>CMS</span>
           </div>
           <p style={{ color: 'rgba(255,255,255,0.38)', fontSize: '13px', margin: '6px 0 0' }}>
-            Sign in to manage your site content
+            Developer Access
           </p>
         </div>
 
