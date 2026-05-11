@@ -38,6 +38,11 @@ body { margin: 0; }
   border-radius: 8px;
 }
 
+/* ── Upload spinner ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ── Input focus glow ── */
 .ob-input:focus {
   outline: none;

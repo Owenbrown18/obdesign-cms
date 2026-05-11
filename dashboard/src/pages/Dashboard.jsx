@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../App';
+import { useAuth } from '../lib/auth';
 import { getContent, getStructure } from '../lib/api';
 import FieldEditor from '../components/FieldEditor';
 import StructureEditor from '../components/StructureEditor';
@@ -138,13 +138,31 @@ export default function Dashboard() {
     ));
   }
 
-  // Called by StructureEditor when structure changes so content nav stays in sync
-  function handleStructureChange(newPages, newFields) {
+  // Called by StructureEditor when structure changes — syncs nav and refreshes content
+  function handleStructureChange(newPages) {
     setPages(newPages);
-    if (newFields) setFields(newFields);
+    getContent(PROJECT_SLUG)
+      .then(data => setFields(data.fields ?? []))
+      .catch(() => {});
   }
 
-  if (!PROJECT_SLUG) return null;
+  if (!PROJECT_SLUG) return (
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: '#f7faf9', flexDirection: 'column', gap: '12px',
+    }}>
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+        <circle cx="18" cy="18" r="16" stroke="#bcd4cf" strokeWidth="1.5"/>
+        <path d="M18 11v8M18 23v1" stroke="#bcd4cf" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+      <p style={{ color: '#7a9a96', fontSize: '15px', fontWeight: 600, margin: 0 }}>
+        No project assigned
+      </p>
+      <p style={{ color: '#adc4c0', fontSize: '13px', margin: 0 }}>
+        Contact your developer to get access to a project.
+      </p>
+    </div>
+  );
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: C.pageBg }}>

@@ -1,17 +1,12 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
-import { getClientProject } from './lib/api';
+import { getClientProject, getProfile } from './lib/api';
+import { AuthContext, useAuth } from './lib/auth';
 import Login from './pages/Login';
 import DeveloperLogin from './pages/DeveloperLogin';
 import Dashboard from './pages/Dashboard';
 import ProjectsList from './pages/ProjectsList';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-// ── Auth context ───────────────────────────────────────────
-export const AuthContext = createContext(null);
-export const useAuth = () => useContext(AuthContext);
 
 // ── Auth route (redirect away if already logged in) ────────
 function AuthRoute({ children }) {
@@ -50,10 +45,8 @@ export default function App() {
 
   async function fetchProfile(userId) {
     try {
-      const res = await fetch(`${API_BASE}/profile/${userId}`);
-      const p   = res.ok ? await res.json() : { role: 'client' };
+      const p = await getProfile(userId);
       setProfile(p);
-
       if (p.role === 'client') {
         getClientProject(userId)
           .then(({ project }) => setClientSlug(project.slug))
