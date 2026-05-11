@@ -7,6 +7,7 @@ const S = {
   btn: (variant = 'primary') => ({
     padding: '9px 18px', border: 'none', borderRadius: '8px', cursor: 'pointer',
     fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.07em',
+    transition: 'all 0.15s',
     ...(variant === 'primary'
       ? { background: '#7ba49e', color: '#0b1f1d' }
       : variant === 'danger'
@@ -65,10 +66,16 @@ function ClientCard({ client, projectSlug, onRemoved, onReset }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={() => setShowReset(v => !v)} style={S.btn('ghost')}>
+          <button onClick={() => setShowReset(v => !v)} style={S.btn('ghost')}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(123,164,158,0.12)'; e.currentTarget.style.borderColor = '#7ba49e'; e.currentTarget.style.color = '#7ba49e'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#d4e6e1'; e.currentTarget.style.color = '#7a9a96'; }}
+          >
             Reset Password
           </button>
-          <button onClick={handleRemove} disabled={removing} style={S.btn('danger')}>
+          <button onClick={handleRemove} disabled={removing} style={S.btn('danger')}
+            onMouseEnter={e => { if (!removing) { e.currentTarget.style.background = 'rgba(220,38,38,0.08)'; e.currentTarget.style.borderColor = '#dc2626'; } }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(220,38,38,0.3)'; }}
+          >
             {removing ? 'Revoking…' : 'Revoke Access'}
           </button>
         </div>
