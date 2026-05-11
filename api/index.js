@@ -1,11 +1,31 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const multer = require('multer');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGIN || 'http://localhost:5173',
+}));
 app.use(express.json());
+
+const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter(_req, file, cb) {
+    if (ALLOWED_MIME.has(file.mimetype)) cb(null, true);
+    else cb(new Error(`Unsupported file type: ${file.mimetype}. Allowed: jpeg, png, webp, gif`));
+  },
+});
+
+function runUpload(req, res) {
+  return new Promise((resolve, reject) => {
+    upload.single('file')(req, res, err => err ? reject(err) : resolve());
+  });
+}
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -314,6 +334,34 @@ app.post('/project/:projectSlug/clients/:clientId/reset-password', async (req, r
   const { error } = await supabase.auth.admin.updateUserById(clientId, { password });
   if (error) return res.status(500).json({ error: error.message });
   res.json({ reset: true });
+});
+
+// ── Image upload ───────────────────────────────────────────
+
+app.post('/upload/:projectSlug', async (req, res) => {
+  try {
+    await runUpload(req, res);
+  } catch (err) {
+    const msg = err.code === 'LIMIT_FILE_SIZE' ? 'File too large (max 5 MB)' : err.message;
+    return res.status(400).json({ error: msg });
+  }
+
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+  const { project, error: pErr } = await getProjectBySlug(req.params.projectSlug);
+  if (pErr || !project) return res.status(404).json({ error: 'Project not found' });
+
+  const safeName = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${req.params.projectSlug}/${Date.now()}-${safeName}`;
+
+  const { error: uploadErr } = await supabase.storage
+    .from('cms-images')
+    .upload(path, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+
+  if (uploadErr) return res.status(500).json({ error: uploadErr.message });
+
+  const { data } = supabase.storage.from('cms-images').getPublicUrl(path);
+  res.json({ url: data.publicUrl });
 });
 
 // ── Start ──────────────────────────────────────────────────

@@ -1,9 +1,7 @@
 import { useState } from 'react';
-import { addPage, addSection, addField, deletePage, deleteSection, deleteField } from '../lib/api';
+import { addPage, addSection, addField, deletePage, deleteSection, deleteField, API_BASE } from '../lib/api';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-const FIELD_TYPES = ['text', 'textarea'];
+const FIELD_TYPES = ['text', 'textarea', 'image'];
 
 const S = {
   label: { color: '#7ba49e', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '5px' },
@@ -91,6 +89,12 @@ function AddFieldForm({ projectSlug, sectionId, onAdded, onCancel }) {
         <select style={{ ...S.input, cursor: 'pointer' }} value={type} onChange={e => setType(e.target.value)}>
           {FIELD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
+        {type === 'image' && (
+          <p style={{ color: '#7ba49e', fontSize: '11px', margin: '5px 0 0', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#7ba49e" strokeWidth="1.1"/><path d="M5.5 4.5v3M5.5 3.5v.2" stroke="#7ba49e" strokeWidth="1.1" strokeLinecap="round"/></svg>
+            After adding this field, open the section in the sidebar to upload an image.
+          </p>
+        )}
       </div>
       {err && <p style={{ color: '#dc2626', fontSize: '12px', margin: 0 }}>{err}</p>}
       <div style={{ display: 'flex', gap: '8px' }}>

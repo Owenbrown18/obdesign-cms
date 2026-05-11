@@ -1,4 +1,8 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+export const API_BASE = (() => {
+  const url = import.meta.env.VITE_API_URL;
+  if (!url) throw new Error('[CMS] VITE_API_URL is not set — add it to .env');
+  return url;
+})();
 
 async function request(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, options);
@@ -33,6 +37,9 @@ export const deletePage    = (slug, pageId)    => request(`/structure/${slug}/pa
 export const deleteSection = (slug, sectionId) => request(`/structure/${slug}/sections/${sectionId}`, { method: 'DELETE' });
 export const deleteField   = (slug, fieldKey)  => request(`/structure/${slug}/fields/${fieldKey}`,    { method: 'DELETE' });
 
+// ── Profile ────────────────────────────────────────────────
+export const getProfile = userId => request(`/profile/${userId}`);
+
 // ── Developer projects ─────────────────────────────────────
 export const getDeveloperProjects = developerId => request(`/developer/${developerId}/projects`);
 export const createProject        = (developerId, name, slug) =>
@@ -47,6 +54,11 @@ export const createClient         = (slug, email, password) =>
   request(`/project/${slug}/clients`, json('POST', { email, password }));
 export const deleteProject        = slug =>
   request(`/project/${slug}`, { method: 'DELETE' });
+export const uploadImage          = (slug, file) => {
+  const form = new FormData();
+  form.append('file', file);
+  return request(`/upload/${slug}`, { method: 'POST', body: form });
+};
 export const removeClient         = (slug, clientId) =>
   request(`/project/${slug}/clients/${clientId}`, { method: 'DELETE' });
 export const resetClientPassword  = (slug, clientId, password) =>

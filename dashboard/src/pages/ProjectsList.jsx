@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../App';
+import { useAuth } from '../lib/auth';
 import { getDeveloperProjects, createProject } from '../lib/api';
 
 const C = {
