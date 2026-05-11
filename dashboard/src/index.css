@@ -1,0 +1,46 @@
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Satoshi', system-ui, sans-serif;
+}
+
+*, *::before, *::after {
+  font-family: 'Satoshi', system-ui, sans-serif;
+  box-sizing: border-box;
+}
+
+body { margin: 0; }
+
+/* ── Slide-up confirmation animation ── */
+@keyframes slide-up-fade {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.anim-slide-up {
+  animation: slide-up-fade 0.22s ease-out forwards;
+}
+
+/* ── Skeleton shimmer ── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(123,164,158,0.06) 25%,
+    rgba(123,164,158,0.14) 50%,
+    rgba(123,164,158,0.06) 75%
+  );
+  background-size: 600px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ── Input focus glow ── */
+.ob-input:focus {
+  outline: none;
+  border-color: #7ba49e !important;
+  box-shadow: 0 0 0 3px rgba(123,164,158,0.15);
+}
