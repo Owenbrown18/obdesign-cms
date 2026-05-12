@@ -1,417 +1,267 @@
 import { useState } from 'react';
-import { addPage, addSection, addField, deletePage, deleteSection, deleteField, API_BASE } from '../lib/api';
+import { patchField } from '../lib/api';
 
-const FIELD_TYPES = ['text', 'textarea', 'image'];
-
-const S = {
-  label: { color: '#7ba49e', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '5px' },
-  input: { width: '100%', background: '#f4f9f7', border: '1px solid #d4e6e1', borderRadius: '8px', padding: '8px 11px', color: '#1a2e2a', fontSize: '13px', fontFamily: 'inherit' },
-  monoInput: { width: '100%', background: '#f4f9f7', border: '1px solid #d4e6e1', borderRadius: '8px', padding: '8px 11px', color: '#1a2e2a', fontSize: '12px', fontFamily: 'ui-monospace, monospace' },
-  addBtn: { padding: '7px 14px', background: '#7ba49e', color: '#0b1f1d', border: 'none', borderRadius: '7px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.07em', cursor: 'pointer', transition: 'all 0.15s' },
-  cancelBtn: { padding: '7px 12px', background: 'transparent', border: '1px solid #d4e6e1', borderRadius: '7px', color: '#7a9a96', fontSize: '11px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' },
-  deleteBtn: { padding: '3px 8px', background: 'transparent', border: '1px solid rgba(220,38,38,0.2)', borderRadius: '5px', color: 'rgba(220,38,38,0.5)', fontSize: '10px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' },
-};
-
-function slugify(str) {
-  return str.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-}
-
-function FieldRow({ field, projectSlug, onDeleted }) {
-  const [deleting, setDeleting] = useState(false);
-
-  async function handleDelete() {
-    if (!confirm(`Delete field "${field.field_key}"? This cannot be undone.`)) return;
-    setDeleting(true);
-    try {
-      await deleteField(projectSlug, field.field_key);
-      onDeleted(field.field_key);
-    } finally {
-      setDeleting(false);
-    }
-  }
-
+// ── Toggle switch ───────────────────────────────────────────
+function Toggle({ on, onChange, disabled }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', background: '#f4f9f7', borderRadius: '7px', marginBottom: '4px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <span style={{ color: '#1a2e2a', fontSize: '12.5px', fontWeight: 600, fontFamily: 'ui-monospace, monospace' }}>{field.field_key}</span>
-        <span style={{ color: '#adc4c0', fontSize: '11px' }}>{field.field_label}</span>
-        <span style={{ background: 'rgba(123,164,158,0.12)', color: '#7ba49e', fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px' }}>{field.field_type}</span>
-      </div>
-      <button onClick={handleDelete} disabled={deleting}
-        style={S.deleteBtn}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(220,38,38,0.08)'; e.currentTarget.style.color = '#dc2626'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(220,38,38,0.5)'; }}>
-        {deleting ? '…' : 'Delete'}
-      </button>
-    </div>
+    <button
+      onClick={onChange}
+      disabled={disabled}
+      title={on ? 'Visible to client — click to hide' : 'Hidden from client — click to show'}
+      style={{
+        width: '36px', height: '20px', flexShrink: 0,
+        background: on ? '#7ba49e' : 'rgba(0,0,0,0.1)',
+        border: `1px solid ${on ? '#7ba49e' : 'rgba(0,0,0,0.15)'}`,
+        borderRadius: '10px', position: 'relative',
+        cursor: disabled ? 'default' : 'pointer',
+        transition: 'background 0.2s, border-color 0.2s',
+        padding: 0,
+      }}
+    >
+      <span style={{
+        position: 'absolute', top: '2px',
+        left: on ? '16px' : '2px',
+        width: '14px', height: '14px', borderRadius: '50%',
+        background: '#fff',
+        transition: 'left 0.18s',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.18)',
+        display: 'block',
+      }} />
+    </button>
   );
 }
 
-function AddFieldForm({ projectSlug, sectionId, onAdded, onCancel }) {
-  const [key, setKey]     = useState('');
-  const [label, setLabel] = useState('');
-  const [type, setType]   = useState('text');
-  const [saving, setSaving] = useState(false);
-  const [err, setErr]     = useState(null);
+// ── Field row ───────────────────────────────────────────────
+function FieldRow({ field, projectSlug, onUpdate }) {
+  const [label, setLabel]       = useState(field.field_label);
+  const [editing, setEditing]   = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [saved, setSaved]       = useState(false);
+  const [toggling, setToggling] = useState(false);
 
-  function handleLabelChange(val) {
-    setLabel(val);
-    if (!key || key === slugify(label)) setKey(slugify(val));
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setSaving(true); setErr(null);
+  async function handleLabelSave() {
+    const trimmed = label.trim();
+    if (!trimmed) { setLabel(field.field_label); setEditing(false); return; }
+    if (trimmed === field.field_label) { setEditing(false); return; }
+    setSaving(true);
     try {
-      const { field } = await addField(projectSlug, sectionId, key, label, type);
-      onAdded(field);
-    } catch (e) {
-      setErr(e.message);
+      await patchField(projectSlug, field.field_key, { field_label: trimmed });
+      onUpdate(field.field_key, { field_label: trimmed });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
     } finally {
       setSaving(false);
+      setEditing(false);
     }
   }
 
-  return (
-    <form onSubmit={handleSubmit} style={{ background: '#eef4f2', border: '1px solid #d4e6e1', borderRadius: '8px', padding: '12px', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-        <div>
-          <label style={S.label}>Label</label>
-          <input className="ob-input" style={S.input} required value={label} onChange={e => handleLabelChange(e.target.value)} placeholder="Hero Title" />
-        </div>
-        <div>
-          <label style={S.label}>Key</label>
-          <input className="ob-input" style={S.monoInput} required value={key} onChange={e => setKey(e.target.value)} placeholder="hero_title" />
-        </div>
-      </div>
-      <div>
-        <label style={S.label}>Type</label>
-        <select style={{ ...S.input, cursor: 'pointer' }} value={type} onChange={e => setType(e.target.value)}>
-          {FIELD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-        {type === 'image' && (
-          <p style={{ color: '#7ba49e', fontSize: '11px', margin: '5px 0 0', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#7ba49e" strokeWidth="1.1"/><path d="M5.5 4.5v3M5.5 3.5v.2" stroke="#7ba49e" strokeWidth="1.1" strokeLinecap="round"/></svg>
-            After adding this field, open the section in the sidebar to upload an image.
-          </p>
-        )}
-      </div>
-      {err && <p style={{ color: '#dc2626', fontSize: '12px', margin: 0 }}>{err}</p>}
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <button type="submit" disabled={saving} style={S.addBtn}
-          onMouseEnter={e => { if (!saving) e.currentTarget.style.background = '#5e8a86'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#7ba49e'; }}
-        >{saving ? 'Adding…' : 'Add Field'}</button>
-        <button type="button" onClick={onCancel} style={S.cancelBtn}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(123,164,158,0.12)'; e.currentTarget.style.borderColor = '#7ba49e'; e.currentTarget.style.color = '#7ba49e'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#d4e6e1'; e.currentTarget.style.color = '#7a9a96'; }}
-        >Cancel</button>
-      </div>
-    </form>
-  );
-}
-
-function SectionBlock({ projectSlug, section, fields, onFieldAdded, onFieldDeleted, onSectionDeleted }) {
-  const [showAddField, setShowAddField] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const sectionFields = fields.filter(f => f.section_id === section.id);
-
-  async function handleDeleteSection() {
-    if (!confirm(`Delete section "${section.label}" and all its fields?`)) return;
-    setDeleting(true);
+  async function handleToggle() {
+    if (toggling) return;
+    setToggling(true);
+    const newHidden = !field.hidden;
     try {
-      await deleteSection(projectSlug, section.id);
-      onSectionDeleted(section.id);
+      await patchField(projectSlug, field.field_key, { hidden: newHidden });
+      onUpdate(field.field_key, { hidden: newHidden });
     } finally {
-      setDeleting(false);
+      setToggling(false);
     }
   }
 
-  return (
-    <div style={{ marginBottom: '10px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ color: '#4a7a76', fontSize: '12px', fontWeight: 700 }}>{section.label}</span>
-          {section.description && <span style={{ color: '#adc4c0', fontSize: '11px' }}>{section.description}</span>}
-        </div>
-        <button onClick={handleDeleteSection} disabled={deleting}
-          style={S.deleteBtn}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(220,38,38,0.08)'; e.currentTarget.style.color = '#dc2626'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(220,38,38,0.5)'; }}>
-          {deleting ? '…' : 'Delete'}
-        </button>
-      </div>
-
-      <div style={{ paddingLeft: '0' }}>
-        {sectionFields.map(f => (
-          <FieldRow key={f.field_key} field={f} projectSlug={projectSlug} onDeleted={onFieldDeleted} />
-        ))}
-        {sectionFields.length === 0 && !showAddField && (
-          <p style={{ color: '#adc4c0', fontSize: '12px', margin: '0 0 6px', fontStyle: 'italic' }}>No fields yet</p>
-        )}
-        {showAddField
-          ? <AddFieldForm projectSlug={projectSlug} sectionId={section.id}
-              onAdded={f => { onFieldAdded(f); setShowAddField(false); }}
-              onCancel={() => setShowAddField(false)} />
-          : <button onClick={() => setShowAddField(true)} style={{ ...S.cancelBtn, fontSize: '10.5px', marginTop: '2px' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(123,164,158,0.12)'; e.currentTarget.style.borderColor = '#7ba49e'; e.currentTarget.style.color = '#7ba49e'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#d4e6e1'; e.currentTarget.style.color = '#7a9a96'; }}
-            >+ Add Field</button>
-        }
-      </div>
-    </div>
-  );
-}
-
-function AddSectionForm({ projectSlug, pageId, onAdded, onCancel }) {
-  const [label, setLabel]   = useState('');
-  const [slug, setSlug]     = useState('');
-  const [desc, setDesc]     = useState('');
-  const [saving, setSaving] = useState(false);
-  const [err, setErr]       = useState(null);
-
-  function handleLabelChange(val) {
-    setLabel(val);
-    if (!slug || slug === slugify(label)) setSlug(slugify(val));
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setSaving(true); setErr(null);
-    try {
-      const { section } = await addSection(projectSlug, pageId, label, slug, desc);
-      onAdded(section);
-    } catch (e) {
-      setErr(e.message);
-    } finally {
-      setSaving(false);
-    }
-  }
+  const TYPE_COLORS = {
+    text:     { bg: 'rgba(123,164,158,0.1)',  color: '#7ba49e' },
+    textarea: { bg: 'rgba(99,130,167,0.1)',   color: '#6382a7' },
+    image:    { bg: 'rgba(150,120,170,0.1)',  color: '#9678aa' },
+  };
+  const tc = TYPE_COLORS[field.field_type] ?? TYPE_COLORS.text;
 
   return (
-    <form onSubmit={handleSubmit} style={{ background: '#eef4f2', border: '1px solid #d4e6e1', borderRadius: '8px', padding: '12px', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-        <div>
-          <label style={S.label}>Label</label>
-          <input className="ob-input" style={S.input} required value={label} onChange={e => handleLabelChange(e.target.value)} placeholder="Hero" />
-        </div>
-        <div>
-          <label style={S.label}>Slug</label>
-          <input className="ob-input" style={S.monoInput} required value={slug} onChange={e => setSlug(e.target.value)} placeholder="hero" />
-        </div>
-      </div>
-      <div>
-        <label style={S.label}>Description</label>
-        <input className="ob-input" style={S.input} value={desc} onChange={e => setDesc(e.target.value)} placeholder="Brief description of this section" />
-      </div>
-      {err && <p style={{ color: '#dc2626', fontSize: '12px', margin: 0 }}>{err}</p>}
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <button type="submit" disabled={saving} style={S.addBtn}
-          onMouseEnter={e => { if (!saving) e.currentTarget.style.background = '#5e8a86'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#7ba49e'; }}
-        >{saving ? 'Adding…' : 'Add Section'}</button>
-        <button type="button" onClick={onCancel} style={S.cancelBtn}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(123,164,158,0.12)'; e.currentTarget.style.borderColor = '#7ba49e'; e.currentTarget.style.color = '#7ba49e'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#d4e6e1'; e.currentTarget.style.color = '#7a9a96'; }}
-        >Cancel</button>
-      </div>
-    </form>
-  );
-}
-
-function PageBlock({ projectSlug, page, fields, onSectionAdded, onFieldAdded, onFieldDeleted, onSectionDeleted, onPageDeleted }) {
-  const [showAddSection, setShowAddSection] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  async function handleDeletePage() {
-    if (!confirm(`Delete page "${page.label}" and everything inside it?`)) return;
-    setDeleting(true);
-    try {
-      await deletePage(projectSlug, page.id);
-      onPageDeleted(page.id);
-    } finally {
-      setDeleting(false);
-    }
-  }
-
-  return (
-    <div style={{ background: '#ffffff', border: '1px solid #dde8e5', borderRadius: '14px', padding: '20px 22px', marginBottom: '12px', boxShadow: '0 2px 12px rgba(11,31,29,0.05)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-        <span style={{ color: '#1a2e2a', fontSize: '14px', fontWeight: 700, letterSpacing: '-0.01em' }}>{page.label}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ color: '#adc4c0', fontSize: '11px', fontFamily: 'ui-monospace, monospace' }}>{page.slug}</span>
-          <button onClick={handleDeletePage} disabled={deleting}
-            style={S.deleteBtn}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(220,38,38,0.08)'; e.currentTarget.style.color = '#dc2626'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(220,38,38,0.5)'; }}>
-            {deleting ? '…' : 'Delete page'}
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '10px',
+      padding: '10px 14px',
+      background: '#fff', border: '1px solid #e8edeb',
+      borderRadius: '10px',
+      opacity: field.hidden ? 0.45 : 1,
+      transition: 'opacity 0.2s',
+    }}>
+      {/* Editable label */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {editing ? (
+          <input
+            autoFocus
+            value={label}
+            onChange={e => setLabel(e.target.value)}
+            onBlur={handleLabelSave}
+            onKeyDown={e => {
+              if (e.key === 'Enter') handleLabelSave();
+              if (e.key === 'Escape') { setLabel(field.field_label); setEditing(false); }
+            }}
+            className="ob-input"
+            style={{
+              width: '100%', background: '#f4f9f7',
+              border: '1px solid #7ba49e', borderRadius: '6px',
+              padding: '4px 8px', color: '#1a2e2a', fontSize: '13px',
+              fontFamily: 'inherit',
+            }}
+          />
+        ) : (
+          <button
+            onClick={() => setEditing(true)}
+            title="Click to edit label"
+            style={{
+              background: 'none', border: 'none', padding: 0,
+              color: '#1a2e2a', fontSize: '13px', fontWeight: 600,
+              cursor: 'text', textAlign: 'left', width: '100%',
+              display: 'flex', alignItems: 'center', gap: '6px',
+            }}
+          >
+            {field.field_label}
+            {saved  && <span style={{ color: '#7ba49e', fontSize: '11px', fontWeight: 700 }}>✓</span>}
+            {saving && <span style={{ color: '#adc4c0', fontSize: '11px' }}>saving…</span>}
           </button>
-        </div>
+        )}
+        <p style={{ color: '#adc4c0', fontSize: '10.5px', margin: '2px 0 0', fontFamily: 'ui-monospace, monospace' }}>
+          {field.field_key}
+        </p>
       </div>
 
-      <div style={{ paddingLeft: '12px', borderLeft: '2px solid #eef4f2' }}>
-        {page.sections?.map(section => (
-          <SectionBlock key={section.id} projectSlug={projectSlug} section={section} fields={fields}
-            onFieldAdded={onFieldAdded}
-            onFieldDeleted={onFieldDeleted}
-            onSectionDeleted={onSectionDeleted} />
-        ))}
-        {page.sections?.length === 0 && !showAddSection && (
-          <p style={{ color: '#adc4c0', fontSize: '12px', margin: '0 0 8px', fontStyle: 'italic' }}>No sections yet</p>
-        )}
-        {showAddSection
-          ? <AddSectionForm projectSlug={projectSlug} pageId={page.id}
-              onAdded={s => { onSectionAdded(page.id, s); setShowAddSection(false); }}
-              onCancel={() => setShowAddSection(false)} />
-          : <button onClick={() => setShowAddSection(true)} style={{ ...S.cancelBtn, marginTop: '4px' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(123,164,158,0.12)'; e.currentTarget.style.borderColor = '#7ba49e'; e.currentTarget.style.color = '#7ba49e'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#d4e6e1'; e.currentTarget.style.color = '#7a9a96'; }}
-            >+ Add Section</button>
-        }
+      {/* Type badge */}
+      <span style={{
+        padding: '2px 8px', borderRadius: '5px', fontSize: '10px',
+        fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+        background: tc.bg, color: tc.color, flexShrink: 0,
+      }}>
+        {field.field_type}
+      </span>
+
+      {/* Visibility toggle */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
+        <Toggle on={!field.hidden} onChange={handleToggle} disabled={toggling} />
+        <span style={{ fontSize: '9px', color: field.hidden ? '#adc4c0' : '#7ba49e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          {field.hidden ? 'Hidden' : 'Visible'}
+        </span>
       </div>
     </div>
   );
 }
 
-function AddPageForm({ projectSlug, onAdded, onCancel }) {
-  const [label, setLabel]   = useState('');
-  const [slug, setSlug]     = useState('');
-  const [saving, setSaving] = useState(false);
-  const [err, setErr]       = useState(null);
+// ── Main component ──────────────────────────────────────────
+export default function StructureEditor({ projectSlug, pages: pagesProp }) {
+  const [pages, setPages] = useState(pagesProp);
 
-  function handleLabelChange(val) {
-    setLabel(val);
-    if (!slug || slug === slugify(label)) setSlug(slugify(val));
+  function updateFieldLocal(fieldKey, changes) {
+    setPages(prev => prev.map(page => ({
+      ...page,
+      sections: (page.sections ?? []).map(section => ({
+        ...section,
+        fields: (section.fields ?? []).map(f =>
+          f.field_key === fieldKey ? { ...f, ...changes } : f
+        ),
+      })),
+    })));
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setSaving(true); setErr(null);
-    try {
-      const { page } = await addPage(projectSlug, label, slug);
-      onAdded(page);
-    } catch (e) {
-      setErr(e.message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} style={{ background: '#ffffff', border: '1px solid #dde8e5', borderRadius: '14px', padding: '20px 22px', boxShadow: '0 2px 12px rgba(11,31,29,0.05)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      <p style={{ color: '#7ba49e', fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>New Page</p>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-        <div>
-          <label style={S.label}>Label</label>
-          <input className="ob-input" style={S.input} required value={label} onChange={e => handleLabelChange(e.target.value)} placeholder="Services" />
-        </div>
-        <div>
-          <label style={S.label}>Slug</label>
-          <input className="ob-input" style={S.monoInput} required value={slug} onChange={e => setSlug(e.target.value)} placeholder="services" />
-        </div>
-      </div>
-      {err && <p style={{ color: '#dc2626', fontSize: '12px', margin: 0 }}>{err}</p>}
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <button type="submit" disabled={saving} style={S.addBtn}
-          onMouseEnter={e => { if (!saving) e.currentTarget.style.background = '#5e8a86'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#7ba49e'; }}
-        >{saving ? 'Adding…' : 'Add Page'}</button>
-        <button type="button" onClick={onCancel} style={S.cancelBtn}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(123,164,158,0.12)'; e.currentTarget.style.borderColor = '#7ba49e'; e.currentTarget.style.color = '#7ba49e'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#d4e6e1'; e.currentTarget.style.color = '#7a9a96'; }}
-        >Cancel</button>
-      </div>
-    </form>
-  );
-}
-
-
-export default function StructureEditor({ projectSlug, pages: initialPages, fields: initialFields, onStructureChange }) {
-  const [pages, setPages]   = useState(initialPages);
-  const [fields, setFields] = useState(initialFields);
-  const [showAddPage, setShowAddPage] = useState(false);
-
-  function updateAndNotify(newPages, newFields) {
-    setPages(newPages);
-    setFields(newFields ?? fields);
-    onStructureChange(newPages, newFields ?? fields);
-  }
-
-  function handlePageAdded(page) {
-    updateAndNotify([...pages, page], fields);
-    setShowAddPage(false);
-  }
-
-  function handlePageDeleted(pageId) {
-    const removed = pages.find(p => p.id === pageId);
-    const removedSectionIds = new Set((removed?.sections ?? []).map(s => s.id));
-    updateAndNotify(
-      pages.filter(p => p.id !== pageId),
-      fields.filter(f => !removedSectionIds.has(f.section_id))
-    );
-  }
-
-  function handleSectionAdded(pageId, section) {
-    updateAndNotify(pages.map(p =>
-      p.id === pageId ? { ...p, sections: [...(p.sections ?? []), section] } : p
-    ), fields);
-  }
-
-  function handleSectionDeleted(sectionId) {
-    updateAndNotify(
-      pages.map(p => ({ ...p, sections: p.sections?.filter(s => s.id !== sectionId) })),
-      fields.filter(f => f.section_id !== sectionId)
-    );
-  }
-
-  function handleFieldAdded(field) {
-    updateAndNotify(pages, [...fields, field]);
-  }
-
-  function handleFieldDeleted(fieldKey) {
-    updateAndNotify(pages, fields.filter(f => f.field_key !== fieldKey));
-  }
+  const totalFields = pages.reduce((acc, p) =>
+    acc + (p.sections ?? []).reduce((a, s) => a + (s.fields ?? []).length, 0), 0);
 
   return (
     <div>
-      <div style={{ marginBottom: '32px' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '24px' }}>
         <h1 style={{ color: '#1a2e2a', fontSize: '26px', fontWeight: 700, letterSpacing: '-0.03em', margin: '0 0 6px' }}>
           Structure Editor
         </h1>
         <p style={{ color: '#7a9a96', fontSize: '13.5px', margin: 0 }}>
-          Manage pages, sections, and fields · changes take effect immediately
+          Control what your client can see and edit.
         </p>
       </div>
 
-      {pages.map(page => (
-        <PageBlock key={page.id} projectSlug={projectSlug} page={page} fields={fields}
-          onSectionAdded={handleSectionAdded}
-          onFieldAdded={handleFieldAdded}
-          onFieldDeleted={handleFieldDeleted}
-          onSectionDeleted={handleSectionDeleted}
-          onPageDeleted={handlePageDeleted} />
-      ))}
+      {/* Info banner */}
+      <div style={{
+        display: 'flex', gap: '12px', alignItems: 'flex-start',
+        background: 'rgba(123,164,158,0.07)', border: '1px solid rgba(123,164,158,0.2)',
+        borderRadius: '12px', padding: '14px 16px', marginBottom: '28px',
+      }}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: '1px' }}>
+          <circle cx="8" cy="8" r="7" stroke="#7ba49e" strokeWidth="1.3"/>
+          <path d="M8 7v4M8 5.5v.5" stroke="#7ba49e" strokeWidth="1.4" strokeLinecap="round"/>
+        </svg>
+        <p style={{ color: '#4a7a74', fontSize: '13px', margin: 0, lineHeight: 1.55 }}>
+          Fields are created automatically when you run the integration prompt in your client's codebase.
+          Use this editor to control what your client can see and edit.
+        </p>
+      </div>
 
-      {showAddPage
-        ? <AddPageForm projectSlug={projectSlug} onAdded={handlePageAdded} onCancel={() => setShowAddPage(false)} />
-        : (
-          <button onClick={() => setShowAddPage(true)}
-            style={{
-              width: '100%', padding: '12px', background: 'transparent',
-              border: '1.5px dashed #bcd4cf', borderRadius: '12px',
-              color: '#7a9a96', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-              transition: 'border-color 0.15s, color 0.15s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#7ba49e'; e.currentTarget.style.color = '#7ba49e'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#bcd4cf'; e.currentTarget.style.color = '#7a9a96'; }}
-          >
-            + Add Page
-          </button>
-        )
-      }
+      {/* Empty state */}
+      {totalFields === 0 && (
+        <div style={{ textAlign: 'center', padding: '48px 0', color: '#adc4c0', fontSize: '13.5px' }}>
+          No fields yet — run the integration prompt on your client's codebase to get started.
+        </div>
+      )}
 
+      {/* Pages */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {pages.map(page => {
+          const pageFieldCount = (page.sections ?? []).reduce((a, s) => a + (s.fields ?? []).length, 0);
+          return (
+            <div key={page.id} style={{
+              background: '#fff', border: '1px solid #dde8e5',
+              borderRadius: '14px', overflow: 'hidden',
+              boxShadow: '0 2px 12px rgba(11,31,29,0.05)',
+            }}>
+              {/* Page header */}
+              <div style={{
+                padding: '14px 18px', borderBottom: '1px solid #edf2f0',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
+                <p style={{ color: '#1a2e2a', fontSize: '13px', fontWeight: 700, margin: 0 }}>
+                  {page.label}
+                </p>
+                <span style={{ color: '#adc4c0', fontSize: '11.5px' }}>
+                  {pageFieldCount} field{pageFieldCount !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              {/* Sections */}
+              <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {(page.sections ?? []).map(section => {
+                  const sectionFields = section.fields ?? [];
+                  return (
+                    <div key={section.id}>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        marginBottom: '8px',
+                      }}>
+                        <p style={{ color: '#7a9a96', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
+                          {section.label}
+                        </p>
+                        <span style={{ color: '#adc4c0', fontSize: '11px' }}>
+                          {sectionFields.length} field{sectionFields.length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      {sectionFields.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {sectionFields.map(field => (
+                            <FieldRow
+                              key={field.field_key}
+                              field={field}
+                              projectSlug={projectSlug}
+                              onUpdate={updateFieldLocal}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <p style={{ color: '#adc4c0', fontSize: '12px', margin: 0, fontStyle: 'italic' }}>
+                          No fields in this section.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -23,7 +23,9 @@ export const updateField = (slug, field_key, field_value) =>
   request(`/content/${slug}`, json('PUT', { field_key, field_value }));
 
 // ── Structure (read) ───────────────────────────────────────
-export const getStructure = slug => request(`/structure/${slug}`);
+export const getStructure  = slug => request(`/structure/${slug}`);
+export const patchField    = (slug, fieldKey, updates) =>
+  request(`/structure/${slug}/fields/${fieldKey}`, json('PATCH', updates));
 
 // ── Structure (write) ──────────────────────────────────────
 export const addPage    = (slug, label, pageSlug) =>

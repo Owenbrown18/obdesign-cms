@@ -324,8 +324,6 @@ export default function Dashboard() {
             <StructureEditor
               projectSlug={PROJECT_SLUG}
               pages={pages}
-              fields={fields}
-              onStructureChange={handleStructureChange}
             />
           )}
           {activeSectionId === '__clients__' && (

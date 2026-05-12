@@ -5,9 +5,14 @@ const multer = require('multer');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-app.use(cors({
-  origin: process.env.ALLOWED_ORIGIN || 'http://localhost:5173',
-}));
+// ALLOWED_ORIGIN=* opens the API to all origins (public read; writes protected by auth)
+// ALLOWED_ORIGIN=https://example.com restricts to a single origin
+// Unset falls back to localhost for local development
+const corsOrigin = process.env.ALLOWED_ORIGIN === '*'
+  ? '*'
+  : (process.env.ALLOWED_ORIGIN || 'http://localhost:5173');
+
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
 
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
@@ -52,7 +57,8 @@ app.get('/content/:projectSlug', async (req, res) => {
   const { data: fields, error } = await supabase
     .from('content')
     .select('field_key, field_label, field_value, field_type, section_id')
-    .eq('project_id', project.id);
+    .eq('project_id', project.id)
+    .eq('hidden', false);
 
   if (error) return res.status(500).json({ error: error.message });
 
@@ -95,8 +101,19 @@ app.get('/structure/:projectSlug', async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
 
+  // Fetch ALL fields including hidden ones so the structure editor sees everything
+  const { data: allFields } = await supabase
+    .from('content')
+    .select('field_key, field_label, field_type, section_id, hidden')
+    .eq('project_id', project.id);
+
   pages?.sort((a, b) => a.sort_order - b.sort_order);
-  pages?.forEach(p => p.sections?.sort((a, b) => a.sort_order - b.sort_order));
+  pages?.forEach(p => {
+    p.sections?.sort((a, b) => a.sort_order - b.sort_order);
+    p.sections?.forEach(s => {
+      s.fields = (allFields ?? []).filter(f => f.section_id === s.id);
+    });
+  });
 
   res.json({ pages, projectName: project.name });
 });
@@ -159,6 +176,31 @@ app.post('/structure/:projectSlug/fields', async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
   res.status(201).json({ field: data });
+});
+
+app.patch('/structure/:projectSlug/fields/:fieldKey', async (req, res) => {
+  const { fieldKey } = req.params;
+  const { hidden, field_label } = req.body;
+
+  const { project, error: pErr } = await getProjectBySlug(req.params.projectSlug);
+  if (pErr || !project) return res.status(404).json({ error: 'Project not found' });
+
+  const updates = {};
+  if (hidden    !== undefined) updates.hidden      = hidden;
+  if (field_label !== undefined) updates.field_label = field_label;
+  if (!Object.keys(updates).length)
+    return res.status(400).json({ error: 'Nothing to update' });
+
+  const { data, error } = await supabase
+    .from('content')
+    .update(updates)
+    .eq('project_id', project.id)
+    .eq('field_key', fieldKey)
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ field: data });
 });
 
 app.delete('/structure/:projectSlug/pages/:pageId', async (req, res) => {
