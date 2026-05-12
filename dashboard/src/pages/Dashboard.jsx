@@ -7,6 +7,7 @@ import FieldEditor from '../components/FieldEditor';
 import StructureEditor from '../components/StructureEditor';
 import ClientAccess from '../components/ClientAccess';
 import ProjectSettings from '../components/ProjectSettings';
+import ConnectSite from '../components/ConnectSite';
 
 const C = {
   sidebar:   '#0d211e',
@@ -92,7 +93,7 @@ export default function Dashboard() {
   // Derive active section/page from content nav state
   let activeSection = null;
   let activePage    = null;
-  const isDevPanel  = activeSectionId === '__structure__' || activeSectionId === '__clients__' || activeSectionId === '__settings__';
+  const isDevPanel  = activeSectionId === '__structure__' || activeSectionId === '__clients__' || activeSectionId === '__settings__' || activeSectionId === '__connect__';
 
   if (!isDevPanel) {
     for (const page of pages) {
@@ -276,6 +277,9 @@ export default function Dashboard() {
                 <NavItem label="Client Access" id="__clients__"
                   active={activeSectionId === '__clients__'}
                   onClick={() => setActive('__clients__')} />
+                <NavItem label="Connect Site" id="__connect__"
+                  active={activeSectionId === '__connect__'}
+                  onClick={() => setActive('__connect__')} />
                 <NavItem label="Settings" id="__settings__"
                   active={activeSectionId === '__settings__'}
                   onClick={() => setActive('__settings__')} />
@@ -329,6 +333,9 @@ export default function Dashboard() {
           )}
           {activeSectionId === '__settings__' && (
             <ProjectSettings projectSlug={PROJECT_SLUG} />
+          )}
+          {activeSectionId === '__connect__' && (
+            <ConnectSite projectSlug={PROJECT_SLUG} pages={pages} fields={fields} />
           )}
 
           {/* Content editor */}

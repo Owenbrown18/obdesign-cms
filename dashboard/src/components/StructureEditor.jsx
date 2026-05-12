@@ -326,86 +326,6 @@ function AddPageForm({ projectSlug, onAdded, onCancel }) {
   );
 }
 
-function IntegrationPrompt({ projectSlug, pages, fields }) {
-  const [show, setShow] = useState(false);
-
-  const prompt = [
-    `You are working with a project managed through OBDesign CMS.`,
-    ``,
-    `PROJECT SLUG: ${projectSlug}`,
-    `API BASE: ${API_BASE}`,
-    ``,
-    `CONTENT STRUCTURE:`,
-    `──────────────────`,
-    ...pages.flatMap(page =>
-      (page.sections ?? []).flatMap(section => {
-        const sectionFields = fields.filter(f => f.section_id === section.id);
-        if (!sectionFields.length) return [];
-        return [
-          `${page.label} / ${section.label}`,
-          ...sectionFields.map(f => `  • ${f.field_key} (${f.field_type}) — ${f.field_label}`),
-          ``,
-        ];
-      })
-    ),
-    `FETCH ALL CONTENT:`,
-    `  GET ${API_BASE}/content/${projectSlug}`,
-    `  Returns: { fields: [{ field_key, field_label, field_value, field_type, section_id }] }`,
-    ``,
-    `UPDATE A FIELD:`,
-    `  PUT ${API_BASE}/content/${projectSlug}`,
-    `  Body: { field_key: "hero_title", field_value: "New value" }`,
-  ].join('\n');
-
-  return (
-    <div style={{ marginTop: '32px' }}>
-      <button
-        onClick={() => setShow(v => !v)}
-        style={{
-          width: '100%', padding: '12px 18px',
-          background: show ? 'rgba(123,164,158,0.12)' : 'rgba(123,164,158,0.06)',
-          border: '1px solid rgba(123,164,158,0.25)', borderRadius: '10px',
-          color: '#7ba49e', fontSize: '12px', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          transition: 'background 0.15s',
-        }}
-      >
-        <span>Get Integration Prompt</span>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-          style={{ transform: show ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
-          <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
-
-      {show && (
-        <div style={{ marginTop: '8px', position: 'relative' }}>
-          <pre style={{
-            background: '#0b1f1d', color: '#7ba49e', fontSize: '11.5px', lineHeight: '1.7',
-            padding: '18px 20px', borderRadius: '10px', overflowX: 'auto',
-            border: '1px solid rgba(123,164,158,0.15)', margin: 0, whiteSpace: 'pre-wrap',
-            fontFamily: 'ui-monospace, monospace',
-          }}>{prompt}</pre>
-          <button
-            onClick={() => navigator.clipboard.writeText(prompt)}
-            style={{
-              position: 'absolute', top: '10px', right: '10px',
-              padding: '4px 10px', background: 'rgba(123,164,158,0.15)',
-              border: '1px solid rgba(123,164,158,0.3)', borderRadius: '6px',
-              color: '#7ba49e', fontSize: '10px', fontWeight: 700,
-              textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer',
-            }}
-            onClick={async e => {
-              await navigator.clipboard.writeText(prompt);
-              e.target.textContent = 'Copied!';
-              setTimeout(() => { e.target.textContent = 'Copy'; }, 1500);
-            }}
-          >Copy</button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function StructureEditor({ projectSlug, pages: initialPages, fields: initialFields, onStructureChange }) {
   const [pages, setPages]   = useState(initialPages);
@@ -492,7 +412,6 @@ export default function StructureEditor({ projectSlug, pages: initialPages, fiel
         )
       }
 
-      <IntegrationPrompt projectSlug={projectSlug} pages={pages} fields={fields} />
     </div>
   );
 }
