@@ -165,13 +165,14 @@ export default function Dashboard() {
   );
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', background: C.pageBg }}>
 
       {/* ── Sidebar ─────────────────────────────────────── */}
       <aside style={{
         width: '220px', flexShrink: 0, background: C.sidebar,
         borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column',
-        position: 'fixed', top: 0, left: 0, height: '100vh',
+        height: '100vh',
+        boxShadow: '4px 0 16px rgba(123,164,158,0.2)',
       }}>
 
         {/* Wordmark */}
@@ -311,7 +312,7 @@ export default function Dashboard() {
       </aside>
 
       {/* ── Main content ─────────────────────────────────── */}
-      <main style={{ flex: 1, marginLeft: '220px', background: 'linear-gradient(150deg, #f7faf9 0%, #eef4f2 100%)' }}>
+      <main style={{ flex: 1, height: '100vh', overflowY: 'auto', background: 'linear-gradient(150deg, #f7faf9 0%, #eef4f2 100%)', boxShadow: '0 0 0 1px rgba(123,164,158,0.38), 0 0 18px rgba(123,164,158,0.45)' }}>
         <div style={{ maxWidth: '680px', margin: '0 auto', padding: '52px 48px 80px' }}>
 
           {/* Developer panels */}
