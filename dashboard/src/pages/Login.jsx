@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 export default function Login() {
@@ -6,16 +6,6 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError]       = useState(null);
   const [loading, setLoading]   = useState(false);
-
-  // Pin html/body background to match the dark login gradient while on this page
-  useEffect(() => {
-    document.documentElement.style.background = '#0b1f1d';
-    document.body.style.background = '#0b1f1d';
-    return () => {
-      document.documentElement.style.background = '';
-      document.body.style.background = '';
-    };
-  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
